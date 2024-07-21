@@ -64,6 +64,10 @@ fn main() {
         (321, 335), (288, 286), (339, 251), (374, 302),
     ];
 
+    let points3 = [
+        (377, 249), (411, 197), (436, 249),
+    ];
+
     // Rellenar el primer polígono con color amarillo
     fill_polygon(&mut fb, &points1, &Color::YELLOW);
 
@@ -84,5 +88,15 @@ fn main() {
         draw_line(&mut fb, x0, y0, x1, y1, &Color::WHITE);
     }
 
-    fb.save_as_bmp("polygon_2.bmp");
+    // Rellenar el tercer polígono con color rojo
+    fill_polygon(&mut fb, &points3, &Color::RED);
+
+    // Dibujar la orilla del tercer polígono con color blanco
+    for i in 0..points3.len() {
+        let (x0, y0) = points3[i];
+        let (x1, y1) = points3[(i + 1) % points3.len()];
+        draw_line(&mut fb, x0, y0, x1, y1, &Color::WHITE);
+    }
+
+    fb.save_as_bmp("polygon_3.bmp");
 }
