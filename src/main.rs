@@ -51,6 +51,66 @@ fn fill_polygon(fb: &mut FrameBuffer, points: &[(i32, i32)], color: &Color) {
     }
 }
 
+fn point_in_polygon(point: (i32, i32), polygon: &[(i32, i32)]) -> bool {
+    let (x, y) = point;
+    let mut inside = false;
+    let mut j = polygon.len() - 1;
+    for i in 0..polygon.len() {
+        let (xi, yi) = polygon[i];
+        let (xj, yj) = polygon[j];
+        if ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+            inside = !inside;
+        }
+        j = i;
+    }
+    inside
+}
+
+fn fill_polygon_with_hole(fb: &mut FrameBuffer, outer: &[(i32, i32)], hole: &[(i32, i32)], color: &Color) {
+    let mut nodes = Vec::new();
+    let mut min_y = outer[0].1;
+    let mut max_y = outer[0].1;
+
+    // Encuentra el mínimo y el máximo de Y
+    for point in outer {
+        if point.1 < min_y {
+            min_y = point.1;
+        }
+        if point.1 > max_y {
+            max_y = point.1;
+        }
+    }
+
+    // Escanear línea por línea desde min_y hasta max_y
+    for y in min_y..=max_y {
+        nodes.clear();
+
+        // Construir una lista de nodos
+        let mut j = outer.len() - 1;
+        for i in 0..outer.len() {
+            if (outer[i].1 < y && outer[j].1 >= y) || (outer[j].1 < y && outer[i].1 >= y) {
+                let x = outer[i].0 + (y - outer[i].1) * (outer[j].0 - outer[i].0) / (outer[j].1 - outer[i].1);
+                nodes.push(x);
+            }
+            j = i;
+        }
+
+        // Ordenar nodos
+        nodes.sort();
+
+        // Rellenar entre pares de nodos
+        for n in (0..nodes.len()).step_by(2) {
+            if n + 1 < nodes.len() {
+                for x in nodes[n]..=nodes[n + 1] {
+                    if !point_in_polygon((x, y), hole) {
+                        fb.set_pixel(x as usize, y as usize, color);
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 fn main() {
     let mut fb = FrameBuffer::new(800, 600);
@@ -66,6 +126,17 @@ fn main() {
 
     let points3 = [
         (377, 249), (411, 197), (436, 249),
+    ];
+
+    let points4 = [
+        (413, 177), (448, 159), (502, 88), (553, 53), (535, 36),
+        (676, 37), (660, 52), (750, 145), (761, 179), (672, 192),
+        (659, 214), (615, 214), (632, 230), (580, 230),
+        (597, 215), (552, 214), (517, 144), (466, 180),
+    ];
+
+    let points5 = [
+        (682, 175), (708, 120), (735, 148), (739, 170),
     ];
 
     // Rellenar el primer polígono con color amarillo
@@ -98,5 +169,22 @@ fn main() {
         draw_line(&mut fb, x0, y0, x1, y1, &Color::WHITE);
     }
 
-    fb.save_as_bmp("polygon_3.bmp");
+    // Rellenar el cuarto polígono con color verde
+    fill_polygon_with_hole(&mut fb, &points4, &points5, &Color::GREEN);
+
+    // Dibujar la orilla del cuarto polígono con color blanco
+    for i in 0..points4.len() {
+        let (x0, y0) = points4[i];
+        let (x1, y1) = points4[(i + 1) % points4.len()];
+        draw_line(&mut fb, x0, y0, x1, y1, &Color::WHITE);
+    }
+
+    // Dibujar la orilla del agujero con color blanco
+    for i in 0..points5.len() {
+        let (x0, y0) = points5[i];
+        let (x1, y1) = points5[(i + 1) % points5.len()];
+        draw_line(&mut fb, x0, y0, x1, y1, &Color::WHITE);
+    }
+
+    fb.save_as_bmp("polygon_4.bmp");
 }
